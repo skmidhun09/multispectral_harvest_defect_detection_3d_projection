@@ -8,12 +8,9 @@ import numpy as np
 import open3d as o3d
 import pcd_rotation as rot
 import pcd_filter
+import axis_model as store
 
 matplotlib.use('TkAgg')
-x_max_cord = []
-x_min_cord = []
-z_max_cord = []
-z_min_cord = []
 x_max_cutoff = 0
 z_cutoff = 0
 cord_diff = 0
@@ -21,18 +18,17 @@ inc = 0
 side_count = 1
 
 def reset_position(image_face,pcd):
-    global x_max_cord, x_min_cord, z_max_cord, z_min_cord
     if image_face == 1:
-        translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1 * z_max_cord[0]], [0, 0, 0, 1]])
+        translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1 * store.get_z_max()[0]], [0, 0, 0, 1]])
         pcd.transform(translation_matrix)
     if image_face == 2:
-        translation_matrix = np.array([[1, 0, 0, -1 * x_max_cord[1]], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        translation_matrix = np.array([[1, 0, 0, -1 * store.get_x_max()[1]], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
         pcd.transform(translation_matrix)
     if image_face == 3:
-        translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1 * z_min_cord[2]], [0, 0, 0, 1]])
+        translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1 * store.get_z_min()[2]], [0, 0, 0, 1]])
         pcd.transform(translation_matrix)
     if image_face == 4:
-        translation_matrix = np.array([[1, 0, 0, -1 * x_min_cord[3]], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        translation_matrix = np.array([[1, 0, 0, -1 * store.get_x_min()[3]], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
         pcd.transform(translation_matrix)
 
 
@@ -89,11 +85,10 @@ def pcd_cutoff(i, pcd, xmin, xmax, zmin, zmax):
 
 
 def point_cutoff(pcds):
-    global z_max_cord, z_min_cord, x_max_cord, x_min_cord
-    pcds[0] = pcd_cutoff(1, pcds[0], 0, 0, 0, z_max_cord[1])
-    pcds[1] = pcd_cutoff(2, pcds[1], 0, x_max_cord[0], 0, 0)
-    pcds[2] = pcd_cutoff(3, pcds[2], 0, 0, z_min_cord[1], 0)
-    pcds[3] = pcd_cutoff(4, pcds[3], x_min_cord[0], 0, 0, 0)
+    pcds[0] = pcd_cutoff(1, pcds[0], 0, 0, 0, store.get_z_max()[1])
+    pcds[1] = pcd_cutoff(2, pcds[1], 0, store.get_x_max()[0], 0, 0)
+    pcds[2] = pcd_cutoff(3, pcds[2], 0, 0, store.get_z_min()[1], 0)
+    pcds[3] = pcd_cutoff(4, pcds[3], store.get_x_min()[0], 0, 0, 0)
     return pcds
 
 
@@ -198,7 +193,7 @@ def createPointCloud(imageName, imageNum):
         extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(3 * np.pi / 2), rot.rotation_matrix_x(np.pi))
     # create point cloud
     pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, camera_intrinsic, extrinsic)
-    pcd = pcd_filter.color_filter(pcd)
+    pcd = pcd_filter.color_filter(pcd,side_count)
     reset_position(1, pcd)
     side_count = side_count + 1
     return pcd
@@ -210,12 +205,11 @@ def mainfunc():
     for i in range(6, 10):
         print(i)
         pcds.append(createPointCloud("3D/" + str(i) + ".jpg", i))
-    global x_min_cord
-    print(x_min_cord)
+    print(store.get_x_min())
     pcds = point_cutoff(pcds)
     o3d.visualization.draw_geometries(pcds)
     for j in range(1, len(pcds)):
-        point_cutoff(j, pcds[j])
+        point_cutoff(pcds[j])
     pcd = pcds[0]
     for k in range(1, len(pcds)):
         pcd = combine_point_clouds(pcd, pcds[k])
