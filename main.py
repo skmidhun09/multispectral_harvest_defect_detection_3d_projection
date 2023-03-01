@@ -8,7 +8,7 @@ import numpy as np
 import open3d as o3d
 import pcd_rotation as rot
 import pcd_filter
-import axis_model as store
+import save_list_as_json as ds
 
 matplotlib.use('TkAgg')
 x_max_cutoff = 0
@@ -18,17 +18,18 @@ inc = 0
 side_count = 1
 
 def reset_position(image_face,pcd):
+    stored_data = ds.read_list(str(image_face))
     if image_face == 1:
-        translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1 * store.get_z_max()[0]], [0, 0, 0, 1]])
+        translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1 * stored_data["zmax"]], [0, 0, 0, 1]])
         pcd.transform(translation_matrix)
     if image_face == 2:
-        translation_matrix = np.array([[1, 0, 0, -1 * store.get_x_max()[1]], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        translation_matrix = np.array([[1, 0, 0, -1 * stored_data["xmax"]], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
         pcd.transform(translation_matrix)
     if image_face == 3:
-        translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1 * store.get_z_min()[2]], [0, 0, 0, 1]])
+        translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1 * stored_data["zmin"]], [0, 0, 0, 1]])
         pcd.transform(translation_matrix)
     if image_face == 4:
-        translation_matrix = np.array([[1, 0, 0, -1 * store.get_x_min()[3]], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        translation_matrix = np.array([[1, 0, 0, -1 * stored_data["xmin"]], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
         pcd.transform(translation_matrix)
 
 
@@ -85,10 +86,10 @@ def pcd_cutoff(i, pcd, xmin, xmax, zmin, zmax):
 
 
 def point_cutoff(pcds):
-    pcds[0] = pcd_cutoff(1, pcds[0], 0, 0, 0, store.get_z_max()[1])
-    pcds[1] = pcd_cutoff(2, pcds[1], 0, store.get_x_max()[0], 0, 0)
-    pcds[2] = pcd_cutoff(3, pcds[2], 0, 0, store.get_z_min()[1], 0)
-    pcds[3] = pcd_cutoff(4, pcds[3], store.get_x_min()[0], 0, 0, 0)
+    pcds[0] = pcd_cutoff(1, pcds[0], 0, 0, 0, ds.read_list("2")["zmax"])
+    pcds[1] = pcd_cutoff(2, pcds[1], 0, ds.read_list("1")["xmax"], 0, 0)
+    pcds[2] = pcd_cutoff(3, pcds[2], 0, 0, ds.read_list("2")["zmin"], 0)
+    pcds[3] = pcd_cutoff(4, pcds[3], ds.read_list("1")["xmin"], 0, 0, 0)
     return pcds
 
 
@@ -100,16 +101,12 @@ def create_mesh(pcd):
     pcd.estimate_normals()
     pcd.orient_normals_to_align_with_direction()
     # surface reconstruction
-    # mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=15, n_threads=1)[0]
+    mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=15, n_threads=1)[0]
     # rotate the mesh
-    # rotation = mesh.get_rotation_matrix_from_xyz((np.pi/2, 0, 0))
-    # mesh.rotate(rotation, center=(0, 0, 0))
-    # save the mesh
-    # o3d.io.write_triangle_mesh(f'./mesh.obj', mesh)
+    rotation = mesh.get_rotation_matrix_from_xyz((np.pi/2, 0, 0))
+    mesh.rotate(rotation, center=(0, 0, 0))
     # Convert point cloud to mesh
-    mesh, _ = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(pcd,
-                                                                              o3d.utility.DoubleVector([0.02, 0.04]))
-
+    #mesh, _ = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(pcd, o3d.utility.DoubleVector([0.02, 0.04]))
     # Save mesh as STL file
     o3d.io.write_triangle_mesh("mesh.obj", mesh)
     return mesh
@@ -199,23 +196,25 @@ def createPointCloud(imageName, imageNum):
     return pcd
 
 
-def mainfunc():
+def main_func():
     plt.axis('off')
+    ds.reset()
     pcds = []
     for i in range(6, 10):
         print(i)
         pcds.append(createPointCloud("3D/" + str(i) + ".jpg", i))
-    print(store.get_x_min())
+    print(ds.read_all())
     pcds = point_cutoff(pcds)
     o3d.visualization.draw_geometries(pcds)
-    for j in range(1, len(pcds)):
-        point_cutoff(pcds[j])
+    #for j in range(1, len(pcds)):
+    #    point_cutoff(pcds[j])
     pcd = pcds[0]
     for k in range(1, len(pcds)):
         pcd = combine_point_clouds(pcd, pcds[k])
     mesh = create_mesh(pcd)
     # visualize the mesh
+
     o3d.visualization.draw_geometries([mesh], mesh_show_back_face=True)
 
 
-mainfunc()
+main_func()
