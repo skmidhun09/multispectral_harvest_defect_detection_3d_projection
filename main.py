@@ -9,6 +9,7 @@ import open3d as o3d
 import pcd_rotation as rot
 import pcd_filter
 import save_list_as_json as ds
+import pcd_translation as trans
 
 matplotlib.use('TkAgg')
 x_max_cutoff = 0
@@ -16,21 +17,6 @@ z_cutoff = 0
 cord_diff = 0
 inc = 0
 side_count = 1
-
-def reset_position(image_face,pcd):
-    stored_data = ds.read_list(str(image_face))
-    if image_face == 1:
-        translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1 * stored_data["zmax"]], [0, 0, 0, 1]])
-        pcd.transform(translation_matrix)
-    if image_face == 2:
-        translation_matrix = np.array([[1, 0, 0, -1 * stored_data["xmax"]], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-        pcd.transform(translation_matrix)
-    if image_face == 3:
-        translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1 * stored_data["zmin"]], [0, 0, 0, 1]])
-        pcd.transform(translation_matrix)
-    if image_face == 4:
-        translation_matrix = np.array([[1, 0, 0, -1 * stored_data["xmin"]], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-        pcd.transform(translation_matrix)
 
 
 def pcd_cutoff(i, pcd, xmin, xmax, zmin, zmax):
@@ -43,7 +29,7 @@ def pcd_cutoff(i, pcd, xmin, xmax, zmin, zmax):
             while index < len(points):
                 _, _, z = points[index]
                 index = index + 1
-                print(z, zmax)
+                #print(z, zmax)
                 if z > zmax:
                     del points[index]
                     del colors[index]
@@ -101,13 +87,14 @@ def create_mesh(pcd):
     pcd.estimate_normals()
     pcd.orient_normals_to_align_with_direction()
     # surface reconstruction
+
     mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=15, n_threads=1)[0]
     # rotate the mesh
-    rotation = mesh.get_rotation_matrix_from_xyz((np.pi/2, 0, 0))
+    rotation = mesh.get_rotation_matrix_from_xyz((0, 0, 0))
     mesh.rotate(rotation, center=(0, 0, 0))
-    # Convert point cloud to mesh
-    #mesh, _ = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(pcd, o3d.utility.DoubleVector([0.02, 0.04]))
-    # Save mesh as STL file
+    mesh.remove_duplicated_triangles()
+    mesh.remove_duplicated_vertices()
+    mesh.remove_non_manifold_edges()
     o3d.io.write_triangle_mesh("mesh.obj", mesh)
     return mesh
 
@@ -191,26 +178,49 @@ def createPointCloud(imageName, imageNum):
     # create point cloud
     pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, camera_intrinsic, extrinsic)
     pcd = pcd_filter.color_filter(pcd,side_count)
-    reset_position(1, pcd)
+    trans.reset_position(side_count, pcd)
     side_count = side_count + 1
     return pcd
 
+def test(pcd):
+    vis = o3d.visualization.Visualizer()
+
+    # Add point cloud to the visualizer
+    vis.create_window()
+    vis.add_geometry(pcd)
+
+    # Create mesh coordinate frame
+    mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.0005, origin=[0, 0, 0])
+    vis.add_geometry(mesh_frame)
+
+    # Set camera view
+    ctr = vis.get_view_control()
+    ctr.set_lookat([0, 0, 0])
+    ctr.set_front([1, 0, 0])
+    ctr.set_up([0, 0, 1])
+
+    # Run visualizer
+    vis.run()
 
 def main_func():
     plt.axis('off')
     ds.reset()
     pcds = []
-    for i in range(6, 10):
+    for i in range(11, 15):
         print(i)
         pcds.append(createPointCloud("3D/" + str(i) + ".jpg", i))
     print(ds.read_all())
     pcds = point_cutoff(pcds)
+    trans.align_pcd(pcds)
     o3d.visualization.draw_geometries(pcds)
     #for j in range(1, len(pcds)):
     #    point_cutoff(pcds[j])
     pcd = pcds[0]
     for k in range(1, len(pcds)):
         pcd = combine_point_clouds(pcd, pcds[k])
+    #translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1], [0, 0, 0, 1]])
+    #pcd.transform(translation_matrix)
+    #test(pcd)
     mesh = create_mesh(pcd)
     # visualize the mesh
 
