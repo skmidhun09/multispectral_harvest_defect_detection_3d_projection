@@ -88,12 +88,14 @@ def create_mesh(pcd):
     pcd.orient_normals_to_align_with_direction()
     # surface reconstruction
 
-    mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=15, n_threads=1)[0]
+    mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=15, scale=2, width=0, linear_fit=False)[0]
     # rotate the mesh
+    bbox = pcd.get_axis_aligned_bounding_box()
+    print(str(bbox))
+    mesh = mesh.crop(bbox)
     rotation = mesh.get_rotation_matrix_from_xyz((0, 0, 0))
     mesh.rotate(rotation, center=(0, 0, 0))
-    mesh.remove_duplicated_triangles()
-    mesh.remove_duplicated_vertices()
+    mesh.remove_unreferenced_vertices()
     mesh.remove_non_manifold_edges()
     o3d.io.write_triangle_mesh("mesh.obj", mesh)
     return mesh
@@ -206,7 +208,7 @@ def main_func():
     plt.axis('off')
     ds.reset()
     pcds = []
-    for i in range(11, 15):
+    for i in range(1, 5):
         print(i)
         pcds.append(createPointCloud("3D/" + str(i) + ".jpg", i))
     print(ds.read_all())
