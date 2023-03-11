@@ -208,7 +208,7 @@ def main_func():
     plt.axis('off')
     ds.reset()
     pcds = []
-    for i in range(1, 5):
+    for i in range(6, 10):
         print(i)
         pcds.append(createPointCloud("3D/" + str(i) + ".jpg", i))
     print(ds.read_all())
