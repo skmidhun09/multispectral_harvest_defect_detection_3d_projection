@@ -53,4 +53,4 @@ def find_vertical_factor(img):
     if first_nonblue is None:
         print("No non-blue pixels found in the image")
 
-compute_major_color("3D/1")
+compute_major_color("input/1")

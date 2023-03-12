@@ -10,7 +10,7 @@ def mainfuncMultiThread():
     threads = []
     for i in range(6, 10):
         print(i)
-        t = threading.Thread(target=main.createPointCloud, args=("3D/" + str(i) + ".jpg", i, pcds))
+        t = threading.Thread(target=main.createPointCloud, args=("input/" + str(i) + ".jpg", i, pcds))
         threads.append(t)
         t.start()
     for t in threads:

@@ -6,10 +6,8 @@ import torch
 from transformers import GLPNFeatureExtractor, GLPNForDepthEstimation
 import numpy as np
 import open3d as o3d
-import pcd_rotation as rot
-import pcd_filter
-import save_list_as_json as ds
-import pcd_translation as trans
+from msksoft.pcd import filter, rotation as rot, translation as trans
+from msksoft.ds import json_data_store as data_store
 
 matplotlib.use('TkAgg')
 x_max_cutoff = 0
@@ -17,6 +15,8 @@ z_cutoff = 0
 cord_diff = 0
 inc = 0
 side_count = 1
+
+
 
 
 def pcd_cutoff(i, pcd, xmin, xmax, zmin, zmax):
@@ -72,10 +72,10 @@ def pcd_cutoff(i, pcd, xmin, xmax, zmin, zmax):
 
 
 def point_cutoff(pcds):
-    pcds[0] = pcd_cutoff(1, pcds[0], 0, 0, 0, ds.read_list("2")["zmax"])
-    pcds[1] = pcd_cutoff(2, pcds[1], 0, ds.read_list("1")["xmax"], 0, 0)
-    pcds[2] = pcd_cutoff(3, pcds[2], 0, 0, ds.read_list("2")["zmin"], 0)
-    pcds[3] = pcd_cutoff(4, pcds[3], ds.read_list("1")["xmin"], 0, 0, 0)
+    pcds[0] = pcd_cutoff(1, pcds[0], 0, 0, 0, data_store.read_list("2")["zmax"])
+    pcds[1] = pcd_cutoff(2, pcds[1], 0, data_store.read_list("1")["xmax"], 0, 0)
+    pcds[2] = pcd_cutoff(3, pcds[2], 0, 0, data_store.read_list("2")["zmin"], 0)
+    pcds[3] = pcd_cutoff(4, pcds[3], data_store.read_list("1")["xmin"], 0, 0, 0)
     return pcds
 
 
@@ -97,7 +97,7 @@ def create_mesh(pcd):
     mesh.rotate(rotation, center=(0, 0, 0))
     mesh.remove_unreferenced_vertices()
     mesh.remove_non_manifold_edges()
-    o3d.io.write_triangle_mesh("mesh.obj", mesh)
+    o3d.io.write_triangle_mesh("model3d/mesh.obj", mesh)
     return mesh
 
 
@@ -149,7 +149,7 @@ def createPointCloud(imageName, imageNum):
 
     depth_image = (output * 255 / np.max(output)).astype('uint8')
     plt.imshow(depth_image, cmap="plasma")
-    plt.savefig("depth/" + str(imageNum) + ".png", format="png", bbox_inches='tight', pad_inches=0)
+    plt.savefig("outputs/depth/" + str(imageNum) + ".png", format="png", bbox_inches='tight', pad_inches=0)
     image = np.array(image)
     # create rgbd image
     depth_o3d = o3d.geometry.Image(depth_image)
@@ -179,7 +179,7 @@ def createPointCloud(imageName, imageNum):
         extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(3 * np.pi / 2), rot.rotation_matrix_x(np.pi))
     # create point cloud
     pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, camera_intrinsic, extrinsic)
-    pcd = pcd_filter.color_filter(pcd,side_count)
+    pcd = filter.color_filter(pcd, side_count)
     trans.reset_position(side_count, pcd)
     side_count = side_count + 1
     return pcd
@@ -206,12 +206,12 @@ def test(pcd):
 
 def main_func():
     plt.axis('off')
-    ds.reset()
+    data_store.reset()
     pcds = []
     for i in range(6, 10):
         print(i)
-        pcds.append(createPointCloud("3D/" + str(i) + ".jpg", i))
-    print(ds.read_all())
+        pcds.append(createPointCloud("input/" + str(i) + ".jpg", i))
+    print(data_store.read_all())
     pcds = point_cutoff(pcds)
     trans.align_pcd(pcds)
     o3d.visualization.draw_geometries(pcds)

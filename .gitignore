@@ -3,5 +3,4 @@ __pycache__/pcd_filter.cpython-310.pyc
 __pycache__/pcd_rotation.cpython-310.pyc
 venv/
 .idea/
-mesh.obj
-mesh.obj
+outputs/model_3d/mesh.obj
