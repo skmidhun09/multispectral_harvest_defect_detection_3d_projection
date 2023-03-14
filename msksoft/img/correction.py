@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
+from PIL import Image
 
 
 def compute_major_color(image_name):
-    img = cv2.imread(str(image_name)+".jpg")
+    img = cv2.imread(str(image_name) + ".jpg")
     find_vertical_factor(img)
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     hist = cv2.calcHist([hsv], [0, 1], None, [180, 256], [0, 180, 0, 256])
@@ -15,42 +16,50 @@ def compute_major_color(image_name):
     print("Dominant color (BGR):", dominant_color_bgr)
     return dominant_color_bgr
 
+
 def find_vertical_factor(img):
-    # Initialize variables to track the first and last non-blue pixels
-    first_nonblue = None
-    last_nonblue = None
-    # Loop over each row of pixels in the image from top to bottom
+    xlist = []
+    ylist = []
+    row = None
     for y in range(img.shape[0]):
         # Get the current row of pixels
         row = img[y, :, :]
-        print(y)
-
         # Loop over each pixel in the row from left to right
         for x in range(row.shape[0]):
-            # Get the current pixel
             pixel = row[x, :]
+            if pixel[0] < 200:
+                xlist.append(x)
+                ylist.append(y)
+    y_max = img.shape[0]
+    x_max = row.shape[0]
+    y_top = min(ylist)
+    y_bottom = y_max - max(ylist)
+    y_correct = y_bottom - y_top
+    x_left = min(xlist)
+    x_right = x_max - max(xlist)
+    x_correct = x_right - x_left
+    xtl = 0
+    ytl = 0
+    xbr = x_max
+    ybr = y_max
+    print("x_left "+str(x_left)+" x right"+str(x_right))
+    if y_correct < 0:
+        ytl = ytl - y_correct
+    else:
+        ybr = ybr - y_correct
+    if x_correct < 0:
+        xtl = xtl - x_correct
+    else:
+        xbr = xbr - x_correct
+    cropped_img = img[ytl:ybr, xtl:xbr]
+    return cropped_img
 
-            # Check if the pixel is blue
-            if np.array_equal(pixel, [255, 0, 0]):
-                continue
+def correctedPIl(image):
+    cv_image = find_vertical_factor(image)
+    # Convert the color from BGR to RGB
+    cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+    # Convert the OpenCV image to a PIL image
+    pil_image = Image.fromarray(cv_image)
+    return pil_image
 
-            # Found a non-blue pixel
-            if first_nonblue is None:
-                # This is the first non-blue pixel, mark its position
-                first_nonblue = x
-            # Always update the position of the last non-blue pixel
-            last_nonblue = x
-
-        # Check if we found any non-blue pixels in this row
-        if first_nonblue is not None:
-            # Found non-blue pixels in this row, print their positions
-            print("First non-blue pixel found at x = %d, y = %d" % (first_nonblue, y))
-            print("Last non-blue pixel found at x = %d, y = %d" % (last_nonblue, y))
-            # Exit the loop after finding the first non-blue pixels in the image
-            #break
-
-    # No non-blue pixels found
-    if first_nonblue is None:
-        print("No non-blue pixels found in the image")
-
-compute_major_color("input/1")
+#compute_major_color("../../input/1")

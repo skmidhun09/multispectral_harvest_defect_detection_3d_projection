@@ -1,13 +1,16 @@
+import cv2
 import matplotlib
 from open3d.cpu.pybind.utility import Vector3dVector
 from matplotlib import pyplot as plt
 from PIL import Image
 import torch
-from transformers import GLPNFeatureExtractor, GLPNForDepthEstimation
+from transformers import GLPNImageProcessor, GLPNForDepthEstimation
 import numpy as np
 import open3d as o3d
 from msksoft.pcd import filter, rotation as rot, translation as trans
 from msksoft.ds import json_data_store as data_store
+from msksoft.config import config_loader as cfg
+from msksoft.img import correction as crct
 
 matplotlib.use('TkAgg')
 x_max_cutoff = 0
@@ -15,8 +18,6 @@ z_cutoff = 0
 cord_diff = 0
 inc = 0
 side_count = 1
-
-
 
 
 def pcd_cutoff(i, pcd, xmin, xmax, zmin, zmax):
@@ -97,7 +98,8 @@ def create_mesh(pcd):
     mesh.rotate(rotation, center=(0, 0, 0))
     mesh.remove_unreferenced_vertices()
     mesh.remove_non_manifold_edges()
-    o3d.io.write_triangle_mesh("model3d/mesh.obj", mesh)
+    obj_path = str(cfg.get('objfile'))
+    o3d.io.write_triangle_mesh(obj_path, mesh)
     return mesh
 
 
@@ -114,13 +116,14 @@ def combine_point_clouds(pcd1, pcd2):
 
 
 #############################
-
 def createPointCloud(imageName, imageNum):
-    feature_extractor = GLPNFeatureExtractor.from_pretrained("vinvino02/glpn-nyu")
+    feature_extractor = GLPNImageProcessor.from_pretrained("vinvino02/glpn-nyu")
     model = GLPNForDepthEstimation.from_pretrained("vinvino02/glpn-nyu")
 
     # load and resize the input image
-    image = Image.open(imageName)
+    img = cv2.imread(imageName)
+    image = crct.correctedPIl(img)
+    #image = Image.open(imageName)
     new_height = 480 if image.height > 480 else image.height
     new_height -= (new_height % 32)
     new_width = int(new_height * image.width / image.height)
@@ -166,16 +169,13 @@ def createPointCloud(imageName, imageNum):
     # Set the translation component of the matrix
     global max_cord, cord_diff, side_count
     extrinsic[:3, 3] = np.array([0.0, 0.0, 0.0])
-    extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(0), rot.rotation_matrix_x(np.pi))
-    # np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+    if side_count == 1:
+        extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(0), rot.rotation_matrix_x(np.pi))
     if side_count == 2:
-        extrinsic[:3, 3] = np.array([0.0, 0.0, 0.0])
         extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(np.pi / 2), rot.rotation_matrix_x(np.pi))
     if side_count == 3:
-        extrinsic[:3, 3] = np.array([0.0, 0.0, 0.0])
         extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(np.pi), rot.rotation_matrix_x(np.pi))
     if side_count == 4:
-        extrinsic[:3, 3] = np.array([0.0, 0.0, 0.0])
         extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(3 * np.pi / 2), rot.rotation_matrix_x(np.pi))
     # create point cloud
     pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, camera_intrinsic, extrinsic)

@@ -1,1 +1,2 @@
 datastore: save/data.json
+objfile: outputs/model_3d/mesh.obj
