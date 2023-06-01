@@ -11,7 +11,7 @@ from msksoft.pcd import filter, rotation as rot, translation as trans
 from msksoft.ds import json_data_store as data_store
 from msksoft.img import correction as crct
 from msksoft.pcd import mesh
-
+#import save_fbx
 matplotlib.use('TkAgg')
 x_max_cutoff = 0
 z_cutoff = 0
@@ -144,14 +144,7 @@ def createPointCloud(imageName, imageNum):
     # Set the translation component of the matrix
     global max_cord, cord_diff, side_count
     extrinsic[:3, 3] = np.array([0.0, 0.0, 0.0])
-    if side_count == 1:
-        extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(0), rot.rotation_matrix_x(np.pi))
-    if side_count == 2:
-        extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(np.pi / 2), rot.rotation_matrix_x(np.pi))
-    if side_count == 3:
-        extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(np.pi), rot.rotation_matrix_x(np.pi))
-    if side_count == 4:
-        extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(3 * np.pi / 2), rot.rotation_matrix_x(np.pi))
+    extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(( side_count - 1 ) * ( np.pi / 2 )), rot.rotation_matrix_x(np.pi))
     # create point cloud
     pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, camera_intrinsic, extrinsic)
     pcd = filter.color_filter(pcd, side_count)
@@ -165,7 +158,7 @@ def main_func():
     plt.axis('off')
     data_store.reset()
     pcds = []
-    for i in range(6, 10):
+    for i in range(19, 23):
         print(i)
         pcds.append(createPointCloud("input/" + str(i) + ".jpg", i))
     print(data_store.read_all())
@@ -177,10 +170,18 @@ def main_func():
     pcd = pcds[0]
     for k in range(1, len(pcds)):
         pcd = combine_point_clouds(pcd, pcds[k])
+    o3d.io.write_point_cloud("pointcloud.pcd", pcd)
+    pcd_array = np.asarray(pcd.points)
+    pcd_colors = np.asarray(pcd.colors)
+    with open("point_cloud.txt", "w") as f:
+        for i, point in enumerate(pcd_array):
+            f.write(f"{point[0]},{point[1]},{point[2]},{pcd_colors[i][0]},{pcd_colors[i][1]},{pcd_colors[i][2]}\n")
     #translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1], [0, 0, 0, 1]])
     #pcd.transform(translation_matrix)
-    mesh.show_axis(pcd)
+    #mesh.show_axis(pcd)
     object3d = mesh.generate(pcd)
+    o3d.io.write_triangle_mesh("copy_of_knot.ply", object3d)
+    #save_fbx.save(pcd, object3d)
     # visualize the mesh
     o3d.visualization.draw_geometries([object3d], mesh_show_back_face=True)
 
