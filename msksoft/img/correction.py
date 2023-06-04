@@ -60,6 +60,7 @@ def correctedPIl(image):
     cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
     # Convert the OpenCV image to a PIL image
     pil_image = Image.fromarray(cv_image)
+    #pil_image.show()
     return pil_image
 
 #compute_major_color("../../input/1")

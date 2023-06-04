@@ -12,7 +12,7 @@ def color_filter(pcd, side_count):
     z_cordinates = []
     while index < len(color):
         r, g, b = color[index]
-        if (r < 0.2 and g < 0.2 and b > 0.8):
+        if ((r < 0.3 or g < 0.3) and b > 0.5):
             del color[index]
             del points[index]
         else:

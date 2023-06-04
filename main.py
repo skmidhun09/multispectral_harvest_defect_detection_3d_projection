@@ -1,7 +1,9 @@
+import CustomThread as threading
+from datetime import datetime
 import cv2
 import matplotlib
 from open3d.cpu.pybind.utility import Vector3dVector
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 from PIL import Image
 import torch
 from transformers import GLPNImageProcessor, GLPNForDepthEstimation
@@ -11,7 +13,8 @@ from msksoft.pcd import filter, rotation as rot, translation as trans
 from msksoft.ds import json_data_store as data_store
 from msksoft.img import correction as crct
 from msksoft.pcd import mesh
-#import save_fbx
+
+# import save_fbx
 matplotlib.use('TkAgg')
 x_max_cutoff = 0
 z_cutoff = 0
@@ -30,7 +33,7 @@ def pcd_cutoff(i, pcd, xmin, xmax, zmin, zmax):
             while index < len(points):
                 _, _, z = points[index]
                 index = index + 1
-                #print(z, zmax)
+                # print(z, zmax)
                 if z > zmax:
                     del points[index]
                     del colors[index]
@@ -91,14 +94,15 @@ def combine_point_clouds(pcd1, pcd2):
 
 
 #############################
-def createPointCloud(imageName, imageNum):
+def createPointCloud(imageName, imageNum, total):
+    istart = datetime.now()
     feature_extractor = GLPNImageProcessor.from_pretrained("vinvino02/glpn-nyu")
     model = GLPNForDepthEstimation.from_pretrained("vinvino02/glpn-nyu")
 
     # load and resize the input image
     img = cv2.imread(imageName)
     image = crct.correctedPIl(img)
-    #image = Image.open(imageName)
+    # image = Image.open(imageName)
     new_height = 480 if image.height > 480 else image.height
     new_height -= (new_height % 32)
     new_width = int(new_height * image.width / image.height)
@@ -126,8 +130,8 @@ def createPointCloud(imageName, imageNum):
     width, height = image.size
 
     depth_image = (output * 255 / np.max(output)).astype('uint8')
-    plt.imshow(depth_image, cmap="plasma")
-    plt.savefig("outputs/depth/" + str(imageNum) + ".png", format="png", bbox_inches='tight', pad_inches=0)
+    #plt.imshow(depth_image, cmap="plasma")
+    #plt.savefig("outputs/depth/" + str(imageNum) + ".png", format="png", bbox_inches='tight', pad_inches=0)
     image = np.array(image)
     # create rgbd image
     depth_o3d = o3d.geometry.Image(depth_image)
@@ -144,28 +148,42 @@ def createPointCloud(imageName, imageNum):
     # Set the translation component of the matrix
     global max_cord, cord_diff, side_count
     extrinsic[:3, 3] = np.array([0.0, 0.0, 0.0])
-    extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(( side_count - 1 ) * ( np.pi / 2 )), rot.rotation_matrix_x(np.pi))
+    extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(((side_count - 1) * ((2*np.pi) / total))), rot.rotation_matrix_x(np.pi))
     # create point cloud
     pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, camera_intrinsic, extrinsic)
+    print(type(pcd))
     pcd = filter.color_filter(pcd, side_count)
-    trans.reset_position(side_count, pcd)
+    trans.reset_position(side_count,total, pcd)
     side_count = side_count + 1
+    print("Time taken for image :", imageNum, "is", (datetime.now() - istart).total_seconds(), "s")
     return pcd
 
 
-
 def main_func():
-    plt.axis('off')
+    #plt.axis('off')
+    tstart = datetime.now()
     data_store.reset()
     pcds = []
-    for i in range(19, 23):
-        print(i)
-        pcds.append(createPointCloud("input/" + str(i) + ".jpg", i))
+    start = 1
+    end = 11
+    if __name__ == "__main__":
+        thread_list = []
+        for i in range(start, end):
+            print(i)
+            pcds.append(createPointCloud("input10/" + str(i) + ".jpg", i, end - start))
+        #     thread = threading.Thread(target=createPointCloud, args=("input10/" + str(i) + ".jpg", i, end - start,))
+        #     thread.start()
+        #     thread_list.append(thread)
+        # for j in range(0, len(thread_list)):
+        #     pcd = thread.join()
+        #     if pcd is not None:
+        #         pcds.append(pcd)
+    print("Total Time taken :", (datetime.now() - tstart).total_seconds(), "s")
     print(data_store.read_all())
-    pcds = point_cutoff(pcds)
-    trans.align_pcd(pcds)
+    # pcds = point_cutoff(pcds)
+    # trans.align_pcd(pcds)
     o3d.visualization.draw_geometries(pcds)
-    #for j in range(1, len(pcds)):
+    # for j in range(1, len(pcds)):
     #    point_cutoff(pcds[j])
     pcd = pcds[0]
     for k in range(1, len(pcds)):
@@ -176,14 +194,14 @@ def main_func():
     with open("point_cloud.txt", "w") as f:
         for i, point in enumerate(pcd_array):
             f.write(f"{point[0]},{point[1]},{point[2]},{pcd_colors[i][0]},{pcd_colors[i][1]},{pcd_colors[i][2]}\n")
-    #translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1], [0, 0, 0, 1]])
-    #pcd.transform(translation_matrix)
-    #mesh.show_axis(pcd)
+    # translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, -1], [0, 0, 0, 1]])
+    # pcd.transform(translation_matrix)
+    # mesh.show_axis(pcd)
     object3d = mesh.generate(pcd)
-    o3d.io.write_triangle_mesh("copy_of_knot.ply", object3d)
-    #save_fbx.save(pcd, object3d)
-    # visualize the mesh
-    o3d.visualization.draw_geometries([object3d], mesh_show_back_face=True)
+    o3d.io.write_triangle_mesh("default.ply", object3d)
+    o3d.visualization.draw_geometries([object3d], mesh_show_back_face=True, point_show_normal=True)
 
-
+tstart = datetime.now()
 main_func()
+tend = datetime.now()
+print("Total Time taken :", (tend - tstart).total_seconds(), "s")
