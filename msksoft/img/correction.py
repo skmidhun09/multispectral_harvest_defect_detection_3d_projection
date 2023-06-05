@@ -42,7 +42,7 @@ def find_vertical_factor(img):
     ytl = 0
     xbr = x_max
     ybr = y_max
-    print("x_left "+str(x_left)+" x right"+str(x_right))
+    #print("x_left "+str(x_left)+" x right"+str(x_right))
     if y_correct < 0:
         ytl = ytl - y_correct
     else:

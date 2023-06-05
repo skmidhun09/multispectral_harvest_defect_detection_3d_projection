@@ -24,13 +24,13 @@ def color_filter(pcd, side_count):
             index = index + 1
     image_map = {"xmax": max(x_cordinates), "xmin": min(x_cordinates), "ymax": max(y_cordinates),
                  "ymin": min(y_cordinates), "zmax": max(z_cordinates), "zmin": min(z_cordinates)}
-    data_store.save_list(str(side_count), image_map)
+    #data_store.save_list(str(side_count), image_map)
     x_cord_diff = image_map["xmax"] - image_map["ymin"]
     y_cord_diff = image_map["ymax"] - image_map["ymin"]
     z_cord_diff = image_map["zmax"] - image_map["zmin"]
-    print("x_max: " + str(image_map["xmax"]) + ", x_min: " + str(image_map["xmin"]) + ", x_length: " + str(x_cord_diff))
-    print("y_max: " + str(image_map["ymax"]) + ", y_min: " + str(image_map["ymin"]) + ", y_length: " + str(y_cord_diff))
-    print("z_max: " + str(image_map["zmax"]) + ", z_min: " + str(image_map["zmin"]) + ", z_length: " + str(z_cord_diff))
+    # print("x_max: " + str(image_map["xmax"]) + ", x_min: " + str(image_map["xmin"]) + ", x_length: " + str(x_cord_diff))
+    # print("y_max: " + str(image_map["ymax"]) + ", y_min: " + str(image_map["ymin"]) + ", y_length: " + str(y_cord_diff))
+    # print("z_max: " + str(image_map["zmax"]) + ", z_min: " + str(image_map["zmin"]) + ", z_length: " + str(z_cord_diff))
     color_array = np.array(color)
     point_array = np.array(points)
     pcd.points = Vector3dVector(point_array)
