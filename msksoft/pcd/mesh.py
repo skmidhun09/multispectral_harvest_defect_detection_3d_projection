@@ -5,16 +5,16 @@ from msksoft.config import config_loader as cfg
 
 def generate(pcd):
     # outliers removal
-    cl, ind = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+    cl, ind = pcd.remove_statistical_outlier(nb_neighbors=10, std_ratio=10)
     pcd = pcd.select_by_index(ind)
     # estimate normals
     pcd.estimate_normals()
     pcd.orient_normals_to_align_with_direction()
     # surface reconstruction
-    mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=15, scale=2, width=0, linear_fit=False)[0]
+    mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=15, scale=1.2, width=0, linear_fit=False)[0]
     # rotate the mesh
     bbox = pcd.get_axis_aligned_bounding_box()
-    print(str(bbox))
+    #print(str(bbox))
     mesh = mesh.crop(bbox)
     rotation = mesh.get_rotation_matrix_from_xyz((0, 0, 0))
     mesh.rotate(rotation, center=(0, 0, 0))

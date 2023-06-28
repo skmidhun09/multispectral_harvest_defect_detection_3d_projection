@@ -10,9 +10,10 @@ def color_filter(pcd, side_count):
     x_cordinates = []
     y_cordinates = []
     z_cordinates = []
+
     while index < len(color):
         r, g, b = color[index]
-        if ((r < 0.3 or g < 0.3) and b > 0.5):
+        if ((r < 0.3 or g < 0.3) and b > 0.05):
             del color[index]
             del points[index]
         else:
