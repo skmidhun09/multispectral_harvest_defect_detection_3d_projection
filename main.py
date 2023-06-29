@@ -29,7 +29,12 @@ class GeneratePCD:
     inc = 0
     side_count = 1
 
+    def save_pcd(self, side, pcd):
+        o3d.io.write_point_cloud(self.path + side + ".pcd", pcd)
 
+    def read_pcd(self, side):
+        pcd = o3d.io.read_point_cloud(self.path + side + ".pcd")
+        return pcd
     def display_point_cloud(self, pcd, path):
         vis = o3d.visualization.Visualizer()
         vis.create_window()
@@ -39,7 +44,6 @@ class GeneratePCD:
         vis.update_renderer()
         vis.capture_screen_image(path)
         vis.destroy_window()
-
 
     def align_pcd_to_center(self, pcd):
         # Compute centroid
@@ -102,14 +106,12 @@ class GeneratePCD:
         pcd.colors = Vector3dVector(colors_array)
         return pcd
 
-
     def point_cutoff(self, pcds):
         pcds[0] = self.pcd_cutoff(1, pcds[0], 0, 0, 0, data_store.read_list("2")["zmax"])
         pcds[1] = self.pcd_cutoff(2, pcds[1], 0, data_store.read_list("1")["xmax"], 0, 0)
         pcds[2] = self.pcd_cutoff(3, pcds[2], 0, 0, data_store.read_list("2")["zmin"], 0)
         pcds[3] = self.pcd_cutoff(4, pcds[3], data_store.read_list("1")["xmin"], 0, 0, 0)
         return pcds
-
 
     def combine_point_clouds(self, pcd1, pcd2):
         # Combine the points and colors from the two point clouds into single numpy arrays
@@ -121,7 +123,6 @@ class GeneratePCD:
         combined_pcd.points = o3d.utility.Vector3dVector(combined_points)
         combined_pcd.colors = o3d.utility.Vector3dVector(combined_colors)
         return combined_pcd
-
 
     def estimate_depth_glpn(self, imagePath, imageName):
         glpn_start = datetime.now()
@@ -151,18 +152,17 @@ class GeneratePCD:
         image = image.crop((pad, pad, image.width - pad, image.height - pad))
         formatted = (output * 255 / np.max(output)).astype('uint8')
         depth_image = Image.fromarray(formatted)
-        depth_image.save(self.path+"d" + imageName)
+        depth_image.save(self.path + "d" + imageName)
         image.save(self.path + imageName)
         print("GLPN Time taken for ", imageName, ": ", (datetime.now() - glpn_start).total_seconds(), "s")
-
 
     #############################
     def create_pcd(self, image_num, image_ext, sidecount, total, pcds, lock):
         pcs_start = datetime.now()
         inp_image = Image.open(self.path + image_num + image_ext)
         width, height = inp_image.size
-        print(self.path+"d" + image_num + image_ext)
-        depth_image = Image.open(self.path+"d" + image_num + image_ext)
+        print(self.path + "d" + image_num + image_ext)
+        depth_image = Image.open(self.path + "d" + image_num + image_ext)
         # plt.imshow(depth_image, cmap="plasma")
         # plt.savefig("outputs/depth/" + str(image_num) + ".png", format="png", bbox_inches='tight', pad_inches=0)
         depth_image = np.array(depth_image)
@@ -181,21 +181,21 @@ class GeneratePCD:
         # Set the translation component of the matrix
         self.cord_diff
         extrinsic[:3, 3] = np.array([0.0, 0.0, 0.0])
-        #sidecount = 1
+        # sidecount = 1
         extrinsic[:3, :3] = np.dot(rot.rotation_matrix_y(((sidecount - 1) * ((2 * np.pi) / total))),
                                    rot.rotation_matrix_x(np.pi))
 
         pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, camera_intrinsic, extrinsic)
-        #pcd = filter.color_filter(pcd, sidecount)
+        # pcd = filter.color_filter(pcd, sidecount)
         pcd = bg.remove(inp_image, pcd)
-        #o3d.visualization.draw_geometries([pcd])
+        # o3d.visualization.draw_geometries([pcd])
 
         # color = [153, 0, 0]  # Red color as an example
         # colors = np.full_like(pcd.points, color)
         # pcd.colors = o3d.utility.Vector3dVector(colors / 255.0)
-        #random_indices = np.random.choice(len(pcd.points), size=20000, replace=False)
-        #downsampled_pcd = pcd.select_by_index(random_indices)
-        #o3d.visualization.draw_geometries([downsampled_pcd])
+        # random_indices = np.random.choice(len(pcd.points), size=20000, replace=False)
+        # downsampled_pcd = pcd.select_by_index(random_indices)
+        # o3d.visualization.draw_geometries([downsampled_pcd])
 
         print("points", len(pcd.points))
         pcd = self.align_pcd_to_center(pcd)
@@ -203,7 +203,6 @@ class GeneratePCD:
         print("Time taken for image :", image_num, ": ", (datetime.now() - pcs_start).total_seconds(), "s")
         with lock:
             pcds.append(pcd)
-
 
     def main_func(self):
         data_store.reset()
@@ -226,7 +225,7 @@ class GeneratePCD:
             tpcd_start = datetime.now()
             for j in range(self.input_range[0], self.input_range[1]):
                 self.create_pcd(str(j), ".jpg", self.side_count, image_count, pcds, lock)
-            #     thread = threading.Thread(target=create_pcd, args=(str(j), ".jpg", side_count, image_count, pcds, lock,))
+                #     thread = threading.Thread(target=create_pcd, args=(str(j), ".jpg", side_count, image_count, pcds, lock,))
                 self.side_count = self.side_count + 1
             #     thread.start()
             #     thread_list2.append(thread)
@@ -234,18 +233,16 @@ class GeneratePCD:
             #     thread_list2[k].join()
         print("Total PCD Time taken :", (datetime.now() - tpcd_start).total_seconds(), "s")
         # print(data_store.read_all())
-        #o3d.visualization.draw_geometries(pcds)
+        # o3d.visualization.draw_geometries(pcds)
         pcd = pcds[0]
 
         for k in range(1, len(pcds)):
             pcd = self.combine_point_clouds(pcd, pcds[k])
         self.display_point_cloud(pcd, self.path + "pcd.jpg")
-        if(len(pcds) == 4):
+        if len(pcds) == 4:
             o3d.visualization.draw_geometries([pcd])
-        o3d.io.write_point_cloud(self.path + "pointcloud.pcd", pcd)
         object3d = mesh.generate(pcd)
         o3d.io.write_triangle_mesh(self.path + "image" + str(image_count) + ".ply", object3d)
-
 
     def main_caller(self, name, angles):
         self.path = self.base + name + '/' + str(angles) + '/'
@@ -256,21 +253,9 @@ class GeneratePCD:
         self.main_func()
         print("Program Total Time taken :", (datetime.now() - start).total_seconds(), "s")
 
-
-
 # main_caller("lime", 6)
 
 # print(input_range[1] - input_range[0], " images")
 # start = datetime.now()
 # main_func()
 # print("Program Total Time taken :", (datetime.now() - start).total_seconds(), "s")
-
-
-
-
-
-    # pcd_array = np.asarray(pcd.points)
-    # pcd_colors = np.asarray(pcd.colors)
-    # with open("point_cloud.txt", "w") as f:
-    #     for i, point in enumerate(pcd_array):
-    #         f.write(f"{point[0]},{point[1]},{point[2]},{pcd_colors[i][0]},{pcd_colors[i][1]},{pcd_colors[i][2]}\n")
