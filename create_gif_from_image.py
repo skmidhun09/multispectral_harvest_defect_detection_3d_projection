@@ -7,7 +7,16 @@ basepath = "data/auto/results/"
 
 def create_gif(path, prefix, image_names):
     first_image = Image.open(path + prefix + image_names[0])
-    image_size = first_image.size
+    width, height = first_image.size
+    size = min(width, height)
+    left = (width - size) // 2
+    top = (height - size) // 2
+    right = left + size
+    bottom = top + size
+
+    # Crop the image
+    cropped_image = first_image.crop((left, top, right, bottom))
+    image_size = cropped_image.size
 
     # Create a new list to store the modified images
     numbered_images = []
@@ -15,7 +24,8 @@ def create_gif(path, prefix, image_names):
     # Iterate over each image
     for i, image_name in enumerate(image_names):
         # Open the image
-        image = Image.open(path + prefix + image_name)
+        img = Image.open(path + prefix + image_name)
+        image = img.crop((left, top, right, bottom))
 
         # Create a new image with the same size as the original image
         new_image = Image.new('RGB', image_size)

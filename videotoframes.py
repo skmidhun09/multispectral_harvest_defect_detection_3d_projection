@@ -26,11 +26,11 @@ def save_frame(video_path, result_path, ext=".jpg"):
 def callVideoPath(subject, ang):
     global angles
     angles = ang
-    save_frame('data/fruits_vid/'+subject+'.mp4', 'data/auto/results/'+subject+'/'+str(angles)+'/')
+    save_frame('data/additional_vid/'+subject+'.mp4', 'data/auto/results/'+subject+'/'+str(angles)+'/')
     obj = GeneratePCD()
     obj.main_caller(subject, angles)
 
 
 for i in range(4,13,2):
-    callVideoPath("bell_pepper", i)
+    callVideoPath("bru", i)
 #save_frame('data/fruits_vid/lime.mp4', 'data/temp/result_single/')

@@ -3,8 +3,19 @@ from moviepy.editor import *
 from PIL import Image
 
 def convert_mp4_to_gif(mp4_file, gif_file):
-    video = VideoFileClip(mp4_file)
-    video.write_gif(gif_file, fps=4)
+    clip = VideoFileClip(mp4_file)
+    # Calculate the dimensions of the cropped region
+    width, height = clip.size
+    size = min(width, height)
+    left = (width - size) // 2
+    top = (height - size) // 2
+    right = left + size
+    bottom = top + size
+    # Crop the video clip
+    cropped_clip = clip.crop(x1=left, y1=top, x2=right, y2=bottom)
+    # Set the video clip's aspect ratio to 1:1
+    cropped_clip = cropped_clip.resize((size, size))
+    cropped_clip.write_gif(gif_file, fps=4)
 
 
 def convert_all_mp4_to_gif(folder_path):
@@ -72,10 +83,10 @@ def crop_all_gif(folder_path):
 
 def copy_file():
     count = 1
-    for fruit in os.listdir("D:/projects/multispectral_harvest_defect_detection_3d_projection/data/auto/results/"):
+    for fruit in os.listdir("D:/projects/multispectral_harvest_defect_detection_3d_projection/data/auto/old results/"):
         print(fruit)
         for i in range(4, 13, 2):
-            image = Image.open("D:/projects/multispectral_harvest_defect_detection_3d_projection/data/auto/results/" + str(fruit) + "/" + str(i) + "/" + "PCD.jpg")
+            image = Image.open("D:/projects/multispectral_harvest_defect_detection_3d_projection/data/auto/old results/" + str(fruit) + "/" + str(i) + "/" + "PCD.jpg")
             image.save("D:/projects/multispectral_harvest_defect_detection_3d_projection/data/auto/PCD/" + str(count) + ".jpg")
             count = count + 1
 
@@ -110,19 +121,20 @@ def reduce_frame_rate(input_path, output_path, factor):
     imageio.mimsave(output_path, reduced_gif)
 
 
+
 # crop gif
 # folder_path = "C:/Users/skmid/OneDrive/Desktop/New folder/New folder (5)/"
 # crop_all_gif(folder_path)
 
 # mp4 to gif
-# folder_path = "C:/Users/skmid/OneDrive/Desktop/New folder/New folder (5)/"
-# convert_all_mp4_to_gif(folder_path)
+folder_path = "C:/Users/skmid/OneDrive/Desktop/oldmethod/BRUISE/"
+convert_all_mp4_to_gif(folder_path)
 
 
 #crop_image("example.jpg", "cropped.jpg")
 #copy_file()
 #crop_all_image("D:/projects/multispectral_harvest_defect_detection_3d_projection/data/auto/PCD/")
-
+#trim_video("C:/Users/skmid/OneDrive/Desktop/oldmethod/New folder (3)/onionandlime.mp4", "C:/Users/skmid/OneDrive/Desktop/oldmethod/New folder (3)/")
 #temp_crop_gif()
-
-reduce_frame_rate("D:/projects/multispectral_harvest_defect_detection_3d_projection/data/auto/GIF/1images.gif","D:/projects/multispectral_harvest_defect_detection_3d_projection/data/auto/GIF/01images.gif",5)
+#copy_file()
+#reduce_frame_rate("D:/projects/multispectral_harvest_defect_detection_3d_projection/data/auto/GIF/1images.gif","D:/projects/multispectral_harvest_defect_detection_3d_projection/data/auto/GIF/01images.gif",5)
