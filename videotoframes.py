@@ -31,6 +31,6 @@ def callVideoPath(subject, ang):
     obj.main_caller(subject, angles)
 
 
-for i in range(4,13,2):
-    callVideoPath("bru", i)
+for i in range(4, 13, 2):
+    callVideoPath("apple_bruise", i)
 #save_frame('data/fruits_vid/lime.mp4', 'data/temp/result_single/')

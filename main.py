@@ -35,6 +35,7 @@ class GeneratePCD:
     def read_pcd(self, side):
         pcd = o3d.io.read_point_cloud(self.path + side + ".pcd")
         return pcd
+
     def display_point_cloud(self, pcd, path):
         vis = o3d.visualization.Visualizer()
         vis.create_window()
@@ -241,6 +242,7 @@ class GeneratePCD:
         self.display_point_cloud(pcd, self.path + "pcd.jpg")
         if len(pcds) == 4:
             o3d.visualization.draw_geometries([pcd])
+        o3d.io.write_point_cloud(self.path + "pointcloud.pcd", pcd)
         object3d = mesh.generate(pcd)
         o3d.io.write_triangle_mesh(self.path + "image" + str(image_count) + ".ply", object3d)
 
