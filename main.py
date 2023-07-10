@@ -17,7 +17,7 @@ from msksoft.pcd import mesh
 
 
 class GeneratePCD:
-    base = "data/auto/results/"
+    base = "data/auto1/results/"
     path = ""
 
     input_range = [1, 5]
@@ -187,8 +187,10 @@ class GeneratePCD:
                                    rot.rotation_matrix_x(np.pi))
 
         pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, camera_intrinsic, extrinsic)
+        self.display_point_cloud(pcd, self.path + "pcd" + str(sidecount) + ".jpg")
         # pcd = filter.color_filter(pcd, sidecount)
         pcd = bg.remove(inp_image, pcd)
+        self.display_point_cloud(pcd, self.path + "pcdfilt" + str(sidecount) + ".jpg")
         # o3d.visualization.draw_geometries([pcd])
 
         # color = [153, 0, 0]  # Red color as an example
